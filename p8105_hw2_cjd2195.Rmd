@@ -1,0 +1,136 @@
+---
+title: "P8105 Homework 2"
+author: "Courtney Diamond"
+date: "09-26-2023"
+output: github_document
+---
+
+## Problem 1
+
+First we're going to load our tidyverse library and data. 
+
+```{r}
+library(tidyverse)
+
+pols_month_df = 
+  read_csv("data/pols-month.csv") |> 
+  separate(mon, into = c("year", "month", "day"), sep = "-") |> 
+  mutate(
+    month = case_match(
+      month,
+      "01" ~ "January",
+      "02" ~ "February",
+      "03" ~ "March", 
+      "04" ~ "April", 
+      "05" ~ "May", 
+      "06" ~ "June",
+      "07" ~ "July",
+      "08" ~ "August",
+      "09" ~ "September", 
+      "10" ~ "October", 
+      "11" ~ "November", 
+      "12" ~ "December",
+    )
+  ) |> 
+  mutate(
+    year = as.integer(year)
+  ) |> 
+  mutate(
+    day = as.integer(day)
+  ) |> 
+  mutate(
+    president =
+      case_match(
+        prez_gop,
+        0 ~ "dem",
+        1 ~ "rep"
+      )
+  ) |> 
+  select(!prez_gop & !prez_dem & !day)
+
+pols_month_df
+```
+
+
+Now we'll load the `snp` dataset. 
+```{r}
+this_century_years = c(0:15)
+
+snp_df = 
+  read_csv("data/snp.csv") |> 
+  separate(date, into = c("month", "day", "year"), sep = "/") |>
+  mutate(
+    month =
+      case_match(
+        month,
+        "1" ~ "January",
+        "2" ~ "February",
+        "3" ~ "March",
+        "4" ~ "April",
+        "5" ~ "May",
+        "6" ~ "June",
+        "7" ~ "July",
+        "8" ~ "August",
+        "9" ~ "September",
+        "10" ~ "October",
+        "11" ~ "November",
+        "12" ~ "December"
+      )
+  ) |> 
+  mutate(
+    year = as.integer(year)
+  ) |> 
+  mutate(
+    year = if_else(year %in% this_century_years, year + 2000, year + 1900)
+  ) |> 
+  relocate(year, month) |> 
+  select(!day)
+  
+
+snp_df
+```
+
+Now we'll load the unemployment data. 
+
+```{r}
+unemp_df = 
+  read_csv("data/unemployment.csv") |> 
+  pivot_longer(
+    Jan:Dec,
+    names_to = "Month", 
+    values_to = "unemp_pct"
+  ) |> 
+  mutate(
+    Month = 
+      case_match(
+        Month, 
+        "Jan" ~ "January",
+        "Feb" ~ "February",
+        "Mar" ~ "March",
+        "Apr" ~ "April",
+        "May" ~ "May",
+        "Jun" ~ "June",
+        "Jul" ~ "July",
+        "Aug" ~ "August",
+        "Sep" ~ "September",
+        "Oct" ~ "October",
+        "Nov" ~ "November",
+        "Dec" ~ "December"
+        )
+  ) |> 
+  rename(year = Year, month = Month)
+
+unemp_df
+```
+
+Now we'll merge the datasets.
+
+```{r}
+fivethreeeight_df = left_join(
+  pols_month_df, snp_df
+) |> 
+  left_join(unemp_df)
+
+fivethreeeight_df
+```
+
