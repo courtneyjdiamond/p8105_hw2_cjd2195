@@ -7,7 +7,7 @@ output: github_document
 
 ## Problem 1
 
-First we're going to load our tidyverse library and data. 
+First we're going to load our tidyverse library and first dataset, `pols_month.csv`. 
 
 ```{r}
 library(tidyverse)
@@ -51,8 +51,20 @@ pols_month_df =
 pols_month_df
 ```
 
+The first dataset, `pols_month_df`, contains information relating to the political affiliations of elected federal leaders (Senate, House of Representatives, and President) and state governors for each month of each year since `r min(pull(pols_month_df, year))` up to June of `r max(pull(pols_month_df, year))`. The cleaned dataset has a size of `r nrow(pols_month_df)` rows (observations) and `r ncol(pols_month_df)` columns (variables), with key variables including the following: 
 
-Now we'll load the `snp` dataset. 
+* `year` : the year of the observation
+* `month` : the month of the observation
+* `gov_gop` : the number of Republican governors
+* `sen_gop` : the number of Republican Senators
+* `rep_gop` : the number of Republican Representatives
+* `gov_dem` : the number of Democratic governors
+* `sen_dem` : the number of Democratic Senators
+* `rep_dem` : the number of Democratic Representatives
+* `president` : the affiliation of the US President (Republican or Democratic)
+
+
+Now we'll load the `snp` dataset. First though, I can see that we'll need to transform years from two digits to four, so I'm also going to code in a vector that specifies which of the two-digit combinations belong to this century in order to help make the conversion a little easier. (I can do this because I know from reading the dataset description that the data covers from the 1950s to present day; if this were for 1900 up to present, I'd have to approach it differently.) 
 ```{r}
 this_century_years = c(0:15)
 
@@ -90,6 +102,12 @@ snp_df =
 snp_df
 ```
 
+The second dataset, `snp_df`, contains information about the closing value of the Standard and Poor's stock index for each listed date. Originally, the dataset had discrete dates listed for each value; however, I have removed the day associated with the date, and now the values associated are only those of year and month. This allowed me to then merge this dataset with the one above, which did not have day-specific data. The cleaned dataset has a size of `r nrow(snp_df)` rows and `r ncol(snp_df)` columns, ranging in dates from January of `r min(pull(snp_df, year))` to July of `r max(pull(snp_df, year))`. Variables include: 
+
+* `year` : the year of the observation
+* `month` : the month of the observation
+* `close` : the closing value of the S&P index
+
 Now we'll load the unemployment data. 
 
 ```{r}
@@ -123,7 +141,13 @@ unemp_df =
 unemp_df
 ```
 
-Now we'll merge the datasets.
+The last dataset, `unemp_df`, contains the unemployment rate measured as a percentage for a given year and month. The cleaned dataset has a size of `r nrow(unemp_df)` rows and `r ncol(unemp_df)` columns, and contains information from January `r min(pull(unemp_df, year))` up to December of `r max(pull(unemp_df, year))` (though the last six months of December do not have percentages listed.) The variables include: 
+
+* `year` : the year of the observation
+* `month` : the month of the observation
+* `unemp_pct` : the unemployment percentage in the US
+
+Now we'll merge the datasets, left-joining sequentially (which will conesequently join observations by year and month.)
 
 ```{r}
 fivethreeeight_df = left_join(
@@ -133,6 +157,22 @@ fivethreeeight_df = left_join(
 
 fivethreeeight_df
 ```
+
+The resultant dataset is size 822x11, with the following variables. Any observations that are missing are denoted with `NA`. 
+
+* `year` : the year of the observation
+* `month` : the month of the observation
+* `gov_gop` : the number of Republican governors
+* `sen_gop` : the number of Republican Senators
+* `rep_gop` : the number of Republican Representatives
+* `gov_dem` : the number of Democratic governors
+* `sen_dem` : the number of Democratic Senators
+* `rep_dem` : the number of Democratic Representatives
+* `president` : the affiliation of the US President (Republican or Democratic)
+* `close` : the closing value of the S&P index
+* `unemp_pct` : the unemployment percentage in the US
+
+
 
 ## Problem 2
 
@@ -168,7 +208,7 @@ prof_trash_wheel_df =
   ) |> 
   relocate(trash_wheel)
 
-gwynda_trash_wheel_df = 
+gwynnda_trash_wheel_df = 
   read_excel("data/Trash Wheel Collection Data.xlsx", sheet = 4, range = "A2:K108") |> 
   janitor::clean_names() |> 
   mutate(
@@ -176,7 +216,7 @@ gwynda_trash_wheel_df =
   ) |> 
   select(!homes_powered) |> 
   mutate(
-    trash_wheel = "Gwynda Trash Wheel"
+    trash_wheel = "Gwynnda Trash Wheel"
   ) |> 
   relocate(trash_wheel)
 
@@ -185,9 +225,38 @@ gwynda_trash_wheel_df =
 trash_wheel_data_df = bind_rows(
   mr_trash_wheel_df,
   prof_trash_wheel_df,
-  gwynda_trash_wheel_df
-)
+  gwynnda_trash_wheel_df
+) |> 
+  relocate(plastic_bags, .after = sports_balls)
 
 trash_wheel_data_df
 ```
 
+
+Taking a moment to walk through all the above code: for each dataset, I first imported the respective sheet from the Excel document using the range I specified, created my own version of the `homes_powered` variable using the formula described in the original dataset, removed the old version of the `homes_powered` variable so as not to have duplicates with my own, then added a column to the dataset specifying which Trash Wheel the data belong to. Having done this, and assuring myself that columns represented across multiple datasets were in the same order and spelled the same, it was safe to use the `bind_rows` function to join the datasets together. In a final step, I moved the `plastic_bags` variable to come before the final `houses_powered` variable because I wanted to keep similar variables (i.e. counts of items found) grouped together. 
+
+The resulting dataset `trash_wheel_data_df` is `r nrow(trash_wheel_data_df)` rows and `r ncol(trash_wheel_data_df)` columns in size, meaning there are `r nrow(trash_wheel_data_df)` observations and `r ncol(trash_wheel_data_df)` total variables. The variables include: 
+ 
+* `trash_wheel` : which trash wheel the data come from 
+* `dumpster` : a unique identifier of the dumpster the data come from
+* `month` : the month of the observation
+* `year` : the year of the observation
+* `date` : the date of the observation
+* `weight_tons` : the weight of all the trash collected, in tons
+* `volume_cubic_yards` : the volume of all the trash collected, in cubic yards
+* `plastic_bottles` : the number of plastic bottles collected
+* `polystyrene` : the number of polystyrene items collected
+* `cigarette_butts` : the number of cigarette butts collected
+* `glass_bottles` : the number of glass bottles collected
+* `grocery_bags` : the number of grocery bags collected
+* `chip_bags` : the number of chip bags collected
+* `sports_balls` : the number of sports balls collected
+* `plastic_bags` : the number of plastic bags collected (it is unknown if these are the same as "grocery bags", so I have kept them as a separate variable)
+* `houses_powered` : the number of homes able to be powered from the trash collected, based on the suggested calculation that each ton creates 500 kW and each home uses 30kW. 
+
+
+
+The total amount of weight collected by Prof. Trash Wheel is `r sum(pull(filter(trash_wheel_data_df, trash_wheel == "Prof. Trash Wheel"), weight_tons))` tons.
+
+The total number of cigarette butts collected by Gwynnda in July 2021 is `r format(sum(pull(filter(trash_wheel_data_df, trash_wheel == "Gwynnda Trash Wheel" & year == 2021 & month == "July"), cigarette_butts)), scientific = FALSE)`. 
+ 
